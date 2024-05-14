@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Exercise Tracker | freeCodeCamp</title>
+        <link rel="shortcut icon" href="https://cdn.freecodecamp.org/universal/favicons/favicon.ico" type="image/x-icon" />
+        <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css" />
+        <link href="style.css" rel="stylesheet" type="text/css" />
+    </head>
+
+    <body>
+        <div id="container" class="container">
+            <h1>Exercise tracker</h1>
+            <form id="user-form" action="/api/users" method="post">
+                <h3>Create a New User</h3>
+                <p><code>POST /api/users</code></p>
+                <input id="uname" type="text" name="username" placeholder="username" required />
+                <input type="submit" value="Submit" />
+            </form>
+            <form id="exercise-form" method="post">
+                <h3>Add exercises</h3>
+                <p><code>POST /api/users/:_id/exercises</code></p>
+                <input id="uid" type="text" name=":_id" placeholder=":_id" pattern="\d{1,}" required />
+                <input id="desc" type="text" name="description" placeholder="description*" required />
+                <input id="dur" type="text" name="duration" placeholder="duration* (mins.)" pattern="\d{1,}" required />
+                <input id="date" type="text" name="date" placeholder="date (yyyy-mm-dd)" pattern="\d{4}-\d{2}-\d{2}" />
+                <input type="submit" value="Submit" />
+            </form>
+            <p>
+                <strong>GET user's exercise log: </strong>
+                <code>GET /api/users/:_id/logs?[from][&amp;to][&amp;limit]</code>
+            </p>
+            <p><strong>[ ]</strong> = optional</p>
+            <p><strong>from, to</strong> = dates (yyyy-mm-dd); <strong>limit</strong> = number</p>
+        </div>
+        <script>
+            const containerDiv = document.getElementById('container');
+            const userForm = document.getElementById('user-form');
+            const exerciseForm = document.getElementById('exercise-form');
+
+            const displayNotification = (message, isError = false) => {
+                const newNode = document.createElement('div');
+                const newInnerNode = document.createElement('div');
+                newNode.className = `notification${isError ? ' error' : ''}`;
+                newInnerNode.appendChild(document.createTextNode(message));
+                newNode.appendChild(newInnerNode);
+                containerDiv.appendChild(newNode);
+
+                setTimeout(() => {
+                    newNode.remove();
+                }, 3000);
+            };
+
+            const displaySuccess = (message) => displayNotification(message);
+            const displayError = (message = 'Server has encoutered an error. Please try again later') => displayNotification(message, true);
+
+            const postData = async (url, data) => {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    method: 'POST',
+                    body: JSON.stringify(data),
+                });
+                return response;
+            };
+
+            userForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const userName = document.getElementById('uname').value;
+                const response = await postData('/api/users', { userName });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    displaySuccess(JSON.stringify(userData));
+                } else {
+                    console.log(response.statusText);
+                    if (response.statusText === 'This user already exists') {
+                        displayError('This user already exists');
+                        return;
+                    }
+
+                    displayError();
+                }
+            });
+
+            exerciseForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const userId = document.getElementById('uid').value;
+                const response = await postData(`/api/users/${userId}/exercises`, {
+                    description: document.getElementById('desc')?.value,
+                    duration: document.getElementById('dur')?.value,
+                    date: document.getElementById('date')?.value || null,
+                });
+
+                if (response.ok) {
+                    const exerciseData = await response.json();
+                    displaySuccess(JSON.stringify(exerciseData));
+                } else {
+                    console.log(response.statusText);
+                    if (response.statusText === `User does not exist`) {
+                        displayError('This user does not exist');
+                        return;
+                    }
+
+                    displayError();
+                }
+            });
+        </script>
+    </body>
+</html>
